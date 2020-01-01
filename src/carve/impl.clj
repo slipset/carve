@@ -27,10 +27,53 @@
       (add-to-carve-ignore-file carve-ignore-file (str sym "\n")))
     input))
 
-(defn remove-locs [zloc locs locs->syms {:keys [:interactive?
-                                                :dry-run?]
-                                         :or {interactive? true}
-                                         :as opts}]
+
+
+(defmulti preamble :format)
+
+(defmethod preamble :default [& _] "")
+
+(defmethod preamble :edn [& _] "[")
+
+(defmethod preamble :interactive [{:keys [file]}]
+  (str "Carving " file "\n"))
+
+(defmulti report :format)
+
+(defmethod report :interactive [{:keys [node]}]
+  (str "Found unused var:\n"
+       "------------------\n"
+       (node/string node)
+       "\n"
+       "------------------\n"))
+
+(defmulti postamble :format)
+
+(defmulti postabmle :default [& _] "")
+
+(defmethod postamble :edn [& _] "]")
+
+
+
+(defmethod report :text [{:keys [node loc file var]}]
+  (let [[row col] loc]
+    (str file ":" row ":" col " " var "\n")))
+
+(defmethod report :edn [{:keys [node loc file var]}]
+  (let [[row col] loc]
+    {:row row
+     :col col
+     :file file
+     :var var}))
+
+(defn remove-locs [file zloc locs locs->syms {:keys [:interactive?
+                                                     :dry-run?
+                                                     :format]
+                                              :or {interactive? true
+                                                   format :interactive}
+                                              :as opts}]
+  (when (seq locs)
+    (print (preamble {:file file :format format})))
   (loop [zloc zloc
          locs (seq locs)
          made-changes? false]
@@ -40,10 +83,11 @@
             m (meta node)]
         (if (and (= row (:row m))
                  (= col (:col m)))
-          (do (println "Found unused var:")
-              (println "------------------")
-              (println (node/string node))
-              (println "------------------")
+          (do (print (report {:node node
+                              :loc loc
+                              :file file
+                              :var (get locs->syms loc)
+                              :format format}))
               (let [remove? (cond dry-run? false
                                   interactive?
                                   (= "Y" (interactive opts (get locs->syms loc)))
@@ -73,11 +117,8 @@
                                    [[row col] (symbol (str ns) (str name))])) vs))
         locs (keys locs->syms)
         locs (sort locs)
-        _ (when (seq locs)
-            (println "Carving" file)
-            (println))
         {:keys [:made-changes? :zloc]}
-        (remove-locs zloc locs locs->syms opts)]
+        (remove-locs file zloc locs locs->syms opts)]
     (when made-changes?
       (let [out-file (io/file out-dir file)
             out-file (.getCanonicalFile out-file)]

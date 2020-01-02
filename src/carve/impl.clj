@@ -79,11 +79,7 @@
             m (meta node)]
         (if (and (= row (:row m))
                  (= col (:col m)))
-          (do (print (report {:node node
-                              :loc loc
-                              :file file
-                              :var (get locs->syms loc)
-                              :format format}))
+          (do (println (str file ":" row ":" col " " (get locs->syms loc)))
               (let [remove? (cond dry-run? false
                                   interactive?
                                   (= "Y" (interactive opts (get locs->syms loc)))

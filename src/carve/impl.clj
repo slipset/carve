@@ -47,7 +47,7 @@
 
 (defmulti postamble :format)
 
-(defmulti postabmle :default [& _] "")
+(defmethod postamble :default [& _] "")
 
 (defmethod postamble :edn [& _] "]")
 

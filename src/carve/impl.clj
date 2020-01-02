@@ -27,8 +27,6 @@
       (add-to-carve-ignore-file carve-ignore-file (str sym "\n")))
     input))
 
-
-
 (defmulti preamble :format)
 
 (defmethod preamble :default [& _] "")
@@ -52,8 +50,6 @@
 (defmulti postabmle :default [& _] "")
 
 (defmethod postamble :edn [& _] "]")
-
-
 
 (defmethod report :text [{:keys [node loc file var]}]
   (let [[row col] loc]

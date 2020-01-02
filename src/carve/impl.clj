@@ -117,33 +117,6 @@
       (when aggressive?
         (recur (into removed unused-vars-data) opts)))))
 
-(defn remove-locs [zloc locs locs->syms {:keys [:interactive?
-                                                :dry-run?]
-                                         :or {interactive? true}
-                                         :as opts}]
-  (loop [zloc zloc
-         locs (seq locs)
-         made-changes? false]
-    (if locs
-      (let [[row col :as loc] (first locs)
-            node (z/node zloc)
-            m (meta node)]
-        (if (and (= row (:row m))
-                 (= col (:col m)))
-          (do (println "Found unused var:")
-              (println "------------------")
-              (println (node/string node))
-              (println "------------------")
-              (let [remove? (cond dry-run? false
-                                  interactive?
-                                  (= "Y" (interactive opts (get locs->syms loc)))
-                                  :else true)
-                    zloc (if remove? (z/remove zloc) (z/next zloc))]
-                (recur zloc (next locs) (or remove? made-changes?))))
-          (recur (z/next zloc) locs made-changes?)))
-      {:zloc zloc
-       :made-changes? made-changes?})))
-
 (defn make-report [[file vars] {:keys [api-namespaces] :as opts}]
   (->> api-namespaces
        (locs->syms vars)
